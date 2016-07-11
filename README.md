@@ -117,3 +117,4 @@ where::
                             total number of records processed; default 1,000,000
             --url         - (optional) if specified, <URL> will be the URL
                             of the GPUdb instance; default http://localhost:9191
+
