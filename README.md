@@ -45,9 +45,14 @@ A ``GPUdbBolt`` needs to be instantiated with the *GPUdb* target connection
 information, the name of the collection & table to which data will be streamed,
 and the size & time thresholds that should be used to trigger data flushes::
 
-        GPUdbBolt gpudbBolt = new GPUdbBolt(gpudbConn, targetCollectionName, targetTableName, batchSizeLimit, timeLimitSecs)
+        GPUdbBolt gpudbBolt = new GPUdbBolt(gpudbConn, targetCollectionName, targetTableName, batchSizeLimit, timeLimitSecs);
 
 The *Bolt* will create the target table & collection, if either do not exist.
+
+If using multi-head ingestion, the *Bolt* can be created with the prefix of the
+*GPUdb* node IP addresses:: 
+
+        GPUdbBolt gpudbBolt = new GPUdbBolt(gpudbConn, targetCollectionName, targetTableName, batchSizeLimit, timeLimitSecs, ipPrefix);
 
 
 -----
@@ -68,11 +73,11 @@ configured *Storm* topology and connected::
 They can then be submitted to *Storm*, either by using a simulated cluster::
 
         final LocalCluster cluster = new LocalCluster();
-        cluster.submitTopology(topologyName, config, builder.createTopology())
+        cluster.submitTopology(topologyName, config, builder.createTopology());
 
 or by using a live *Storm* cluster::
 
-        StormSubmitter.submitTopology(topologyName, config, builder.createTopology())
+        StormSubmitter.submitTopology(topologyName, config, builder.createTopology());
 
 
 -----
@@ -106,7 +111,7 @@ Two JAR files are produced by this project:
 
 To run the example, issue the *Unix* command::
 
-        java -jar <gpudbStormJar> [--local] [--records=<RECORDS>] [--url=<URL>]
+        java -jar <gpudbStormJar> [--local] [--records=<RECORDS>] [--url=<URL>] [--ipPrefix=<IPPREFIX>]
 
 where::
 
@@ -117,3 +122,12 @@ where::
                             total number of records processed; default 1,000,000
             --url         - (optional) if specified, <URL> will be the URL
                             of the GPUdb instance; default http://localhost:9191
+            --ipPrefix    - (optional) if specified, <IPPREFIX> will be the
+                            prefix of the IP addresses of the GPUdb nodes
+                            targeted for multi-head ingestion; useful, if those
+                            nodes have multiple IP addresses
+
+example::
+
+        java -jar storm-connector-1.0-jar-with-dependencies.jar --local --records=100000 --url=http://localhost:9191 --ipPrefix=172.30
+
