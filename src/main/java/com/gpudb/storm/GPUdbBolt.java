@@ -8,17 +8,21 @@ import org.apache.storm.topology.IRichBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+
+import com.gpudb.BulkInserter;
 import com.gpudb.GPUdb;
 import com.gpudb.GPUdbException;
 import com.gpudb.GenericRecord;
 import com.gpudb.Type;
 import com.gpudb.protocol.CreateTableRequest;
+
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +60,9 @@ public class GPUdbBolt implements IRichBolt {
     private final String tableName;
     private final int batchSize;
     private final int flushInterval;
+    private final String ipPrefix;
     private transient GPUdb gpudb;
+    private transient BulkInserter<GenericRecord> bi;
     private transient Type type;
     private transient List<Tuple> tuples;
     private transient OutputCollector collector;
@@ -78,6 +84,27 @@ public class GPUdbBolt implements IRichBolt {
      *        frame
      */
     public GPUdbBolt(GPUdb gpudb, String collectionName, String tableName, int batchSize, int flushInterval) {
+        this(gpudb, collectionName, tableName, batchSize, flushInterval, null);
+    }
+
+    /**
+     * Constructs a Storm Bolt for ingesting data into a GPUdb table
+     * 
+     * @param gpudb a configured GPUdb connection, the settings of which will be
+     *        used to make data ingestion connections to GPUdb
+     * @param collectionName name of the collection in which the target table
+     *        exists or should be created if not existent; if null, the target
+     *        table will be top-level (not part of a collection)
+     * @param tableName name of the target table into which data will be
+     *        ingested; will be created, if not existent
+     * @param batchSize number of records to accumulate before ingesting them as
+     *        a group
+     * @param flushInterval interval, in seconds, at which accumulated data
+     *        should be ingested, if batchSize is not reached during that time
+     *        frame
+     * @param ipPrefix prefix of IP addresses to use for multi-head ingest
+     */
+    public GPUdbBolt(GPUdb gpudb, String collectionName, String tableName, int batchSize, int flushInterval, String ipPrefix) {
         // Save the GPUdb parameters from the specified API instance so that a
         // new instance can be created later. This is necessary because the
         // GPUdb object is not serializable and the bolt may be run on a
@@ -91,6 +118,7 @@ public class GPUdbBolt implements IRichBolt {
         this.tableName = tableName;
         this.batchSize = batchSize;
         this.flushInterval = flushInterval;
+        this.ipPrefix = ipPrefix;
     }
 
     @Override
@@ -311,7 +339,10 @@ public class GPUdbBolt implements IRichBolt {
         // Insert records for any tuples that didn't fail into GPUdb.
 
         try {
-            gpudb.insertRecords(tableName, data, null);
+            if (bi == null)
+                bi = new BulkInserter<>(gpudb, tableName, type, batchSize, null, (ipPrefix == null) ? null : new BulkInserter.WorkerList(gpudb, ipPrefix));
+            bi.insert(data);
+            bi.flush();
         } catch (Exception ex) {
             LOG.error("Unable to insert into table " + tableName + " in GPUdb at " + url + ": " + ex.getMessage(), ex);
             failAllTuples();

@@ -50,7 +50,7 @@ public class Test {
         public int value;
     }
 
-    private static String runTest(GPUdb gpudb, int testRecordCount, TopologySubmitter submitter) throws Exception {
+    private static String runTest(GPUdb gpudb, String ipPrefix, int testRecordCount, TopologySubmitter submitter) throws Exception {
         
         final String spoutId = "StormTestSpout";
         final String boltId = "StormTestBolt";
@@ -63,7 +63,7 @@ public class Test {
 
         for (String tableName : Arrays.asList(sourceTable, targetTable))
             if (gpudb.hasTable(tableName, null).getTableExists())
-                gpudb.clearTable(targetTable, null, null);
+                gpudb.clearTable(tableName, null, null);
 
         gpudb.createTable(sourceTable, RecordObject.createType(TestRecord.class, gpudb), null);
 
@@ -74,7 +74,7 @@ public class Test {
 
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout(spoutId, new GPUdbSpout(gpudb, sourceTable), 10);
-        builder.setBolt(boltId, new GPUdbBolt(gpudb, null, targetTable, 9973, 15)).shuffleGrouping(spoutId);
+        builder.setBolt(boltId, new GPUdbBolt(gpudb, null, targetTable, 9973, 15, ipPrefix)).shuffleGrouping(spoutId);
         Config conf = new Config();
         conf.setDebug(true);
         conf.setNumWorkers(2);
@@ -83,7 +83,7 @@ public class Test {
 
         // Insert test records using a batch count of 9967 (also prime).
 
-        BulkInserter<TestRecord> bi = new BulkInserter<>(gpudb, sourceTable, RecordObject.getType(TestRecord.class), 9967, null);
+        BulkInserter<TestRecord> bi = new BulkInserter<>(gpudb, sourceTable, RecordObject.getType(TestRecord.class), 9967, null, (ipPrefix == null) ? null : new BulkInserter.WorkerList(gpudb, ipPrefix));
 
         for (int i = 0; i < testRecordCount; i++) {
             TestRecord st = new TestRecord();
@@ -97,10 +97,16 @@ public class Test {
         // shut down the cluster.
 
         for (int waitSecs = 0; waitSecs < testCompletionWaitTimeTotalSecs; waitSecs += testCompletionCheckIntervalSecs)
-            if (gpudb.showTable(targetTable, GPUdb.options(ShowTableRequest.Options.GET_SIZES, ShowTableRequest.Options.TRUE)).getTotalSize() < testRecordCount)
+        {
+        	long totalTargetRecords = gpudb.showTable(targetTable, GPUdb.options(ShowTableRequest.Options.GET_SIZES, ShowTableRequest.Options.TRUE)).getTotalSize();
+            if ( totalTargetRecords < testRecordCount)
+            {
+            	logger.info("Waiting for job to complete <" + totalTargetRecords + "> < <" + testRecordCount + ">");
                 Utils.sleep(testCompletionCheckIntervalSecs * 1000);
+            }
             else
                 break;
+        }
 
         // Read all the records from targetTable and make sure they match.
 
@@ -142,21 +148,30 @@ public class Test {
      *        {@code --local} - to run against a local Storm cluster
      *        {@code --records=<count>} - total number of test records to stream
      *        {@code --url=<gpudbURL>} - URL of GPUdb instance
+     *        {@code --ipPrefix=<gpudbIPPrefix>} - prefix of GPUdb instances' IP
+     *            addresses to use in multi-head ingest
      * @throws Exception if something goes awry
      */
     public static void main(String[] args) throws Exception {
+        final String PARAM_LOCAL = "--local";
+        final String PARAM_RECORDS = "--records=";
+        final String PARAM_URL = "--url=";
+        final String PARAM_IP_PREFIX = "--ipPrefix=";
         final String topologyName = "StormTestTopology";
         boolean local = false;
         String gpudbUrl = "http://localhost:9191";
+        String ipPrefix = null;
         int testRecordCount = DEFAULT_TEST_RECORD_COUNT;
 
         for (String arg : args) {
-            if (arg.equals("--local")) {
+            if (arg.equals(PARAM_LOCAL)) {
                 local = true;
-            } else if (arg.startsWith("--records=")){
-                testRecordCount = Integer.parseInt(arg.substring(10, arg.length()));
-            } else if (arg.startsWith("--url=")){
-                gpudbUrl = arg.substring(6, arg.length());
+            } else if (arg.startsWith(PARAM_RECORDS)){
+                testRecordCount = Integer.parseInt(arg.substring(PARAM_RECORDS.length()));
+            } else if (arg.startsWith(PARAM_URL)){
+                gpudbUrl = arg.substring(PARAM_URL.length());
+            } else if (arg.startsWith(PARAM_IP_PREFIX)){
+                ipPrefix = arg.substring(PARAM_IP_PREFIX.length());
             } else {
                 System.out.println("Unknown option " + arg);
                 return;
@@ -168,7 +183,7 @@ public class Test {
         if (local) {
             final LocalCluster cluster = new LocalCluster();
 
-            String result = runTest(gpudb, testRecordCount, new TopologySubmitter() {
+            String result = runTest(gpudb, ipPrefix, testRecordCount, new TopologySubmitter() {
                 @Override
                 public void submitTopology(Config config, StormTopology topology) {
                     cluster.submitTopology(topologyName, config, topology);
@@ -188,7 +203,7 @@ public class Test {
 
             System.exit(0);
         } else {
-            logger.info(runTest(gpudb, testRecordCount, new TopologySubmitter() {
+            logger.info(runTest(gpudb, ipPrefix, testRecordCount, new TopologySubmitter() {
                 @Override
                 public void submitTopology(Config config, StormTopology topology) throws Exception {
                     StormSubmitter.submitTopology(topologyName, config, topology);
