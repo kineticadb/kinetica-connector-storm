@@ -1,14 +1,22 @@
 GPUdb Storm Connector Changelog
 ===============================
 
+Version 6.2.0 - 2018-02-11
+--------------------------
+
+-   Version release
+
+
 Version 6.1.0 - 2017-10-05
 --------------------------
 
 -   Releasing version
 
+
 Version 6.0.0 - 2017-01-24
 --------------------------
 -   Releasing version
+
 
 Version 5.2.0 - 2016-07-08
 --------------------------
