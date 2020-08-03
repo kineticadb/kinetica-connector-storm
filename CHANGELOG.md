@@ -1,4 +1,13 @@
-# GPUdb Storm Connector Changelog
+# Kinetica Storm Connector Changelog
+
+
+## Version 7.1
+
+### Version 7.1.0.0 - 2020-07-27
+
+#### Changed
+-   Updated version to 7.1
+
 
 ## Version 7.0
 
@@ -36,4 +45,3 @@
 -   Added version properties and compilation plug-in
 -   Tested in local mode against local *GPUdb* instance
 -   Created ``README.md`` & ``CHANGELOG.md``
-
