@@ -15,6 +15,7 @@ import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.thrift.TException;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -150,6 +151,8 @@ public class Test {
      *        {@code --url=<gpudbURL>} - URL of GPUdb instance
      *        {@code --ipPrefix=<gpudbIPPrefix>} - prefix of GPUdb instances' IP
      *            addresses to use in multi-head ingest
+     *        {@code --user=<username>} - Username to authenticate to GPUdb instance
+     *        {@code --pass=<password>} - Password to authenticate to GPUdb instance
      * @throws Exception if something goes awry
      */
     public static void main(String[] args) throws Exception {
@@ -157,10 +160,14 @@ public class Test {
         final String PARAM_RECORDS = "--records=";
         final String PARAM_URL = "--url=";
         final String PARAM_IP_PREFIX = "--ipPrefix=";
+        final String PARAM_USER = "--user=";
+        final String PARAM_PASS = "--pass=";
         final String topologyName = "StormTestTopology";
         boolean local = false;
         String gpudbUrl = "http://localhost:9191";
         String ipPrefix = null;
+        String gpudbUser = "";
+        String gpudbPass = "";
         int testRecordCount = DEFAULT_TEST_RECORD_COUNT;
 
         for (String arg : args) {
@@ -172,20 +179,25 @@ public class Test {
                 gpudbUrl = arg.substring(PARAM_URL.length());
             } else if (arg.startsWith(PARAM_IP_PREFIX)){
                 ipPrefix = arg.substring(PARAM_IP_PREFIX.length());
+            } else if (arg.startsWith(PARAM_USER)){
+                gpudbUser = arg.substring(PARAM_USER.length());
+            } else if (arg.startsWith(PARAM_PASS)){
+                gpudbPass = arg.substring(PARAM_PASS.length());
             } else {
                 System.out.println("Unknown option " + arg);
                 return;
             }
         }
 
-        GPUdb gpudb = new GPUdb(gpudbUrl);
+        GPUdb.Options options = new GPUdb.Options().setUsername(gpudbUser).setPassword(gpudbPass);
+        GPUdb gpudb = new GPUdb(gpudbUrl, options);
 
         if (local) {
             final LocalCluster cluster = new LocalCluster();
 
             String result = runTest(gpudb, ipPrefix, testRecordCount, new TopologySubmitter() {
                 @Override
-                public void submitTopology(Config config, StormTopology topology) {
+                public void submitTopology(Config config, StormTopology topology) throws TException {
                     cluster.submitTopology(topologyName, config, topology);
                 }
             });
