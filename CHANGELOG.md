@@ -3,6 +3,12 @@
 
 ## Version 7.1
 
+### Version 7.1.0.3 - 2021-12-19
+
+#### Changed
+-   Updated log4j version to 2.17.0
+
+
 ### Version 7.1.0.2 - 2021-12-15
 
 #### Changed
