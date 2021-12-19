@@ -137,4 +137,4 @@ where::
 
 example::
 
-        java -jar storm-connector-1.0-jar-with-dependencies.jar --local --records=100000 --url=http://localhost:9191 --ipPrefix=172.30
+        java -jar storm-connector-7.1.0.3-jar-with-dependencies.jar --local --records=100000 --url=http://localhost:9191 --ipPrefix=172.30
