@@ -115,7 +115,7 @@ Two JAR files are produced by this project:
 
 To run the example, issue the *Unix* command::
 
-        java -jar <kineticaStormJar> [--local] [--records=<RECORDS>] [--url=<URL>] [--ipPrefix=<IPPREFIX>]
+        java -jar <kineticaStormJar> [--local] [--records=<RECORDS>] [--url=<URL>] [--ipPrefix=<IPPREFIX>] [--user=<USER>] [--pass=<PASS>]
 
 where::
 
@@ -130,7 +130,11 @@ where::
                                prefix of the IP addresses of the Kinetica nodes
                                targeted for multi-head ingestion; useful, if
                                those nodes have multiple IP addresses
+            --user           - (optional) if specified, <USER> will be the user name
+                               used to authenticate to the Kinetica instance
+            --pass           - (optional) if specified, <PASS> will be the password
+                               used to authenticate to the Kinetica instance
 
 example::
 
-        java -jar storm-connector-1.0-jar-with-dependencies.jar --local --records=100000 --url=http://localhost:9191 --ipPrefix=172.30
+        java -jar storm-connector-7.0.3.4-jar-with-dependencies.jar --local --records=100000 --url=http://localhost:9191 --ipPrefix=172.30

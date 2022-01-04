@@ -2,6 +2,30 @@
 
 ## Version 7.0
 
+### Version 7.0.3.4 - 2022-01-04
+
+#### Changed
+-   Updated log4j version to 2.17.1
+
+
+### Version 7.0.3.3 - 2021-12-19
+
+#### Changed
+-   Updated log4j version to 2.17.0
+
+
+### Version 7.0.3.2 - 2021-12-15
+
+#### Changed
+-   Updated log4j version to 2.16.0
+
+
+### Version 7.0.3.1 - 2021-12-13
+
+#### Changed
+-   Updated log4j version to 2.15.0
+
+
 ### Version 7.0.3.0 - 2019-05-07
 
 -   Changed the dependent Java API to be 7.0.3
